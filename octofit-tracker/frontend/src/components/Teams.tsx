@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { getJson, postJson } from '../api/client.js';
+import { getErrorMessage, getJson, postJson } from '../api/client.js';
 
 type Team = {
   _id?: string;
@@ -28,8 +28,8 @@ export default function Teams() {
         if (active) setTeams(Array.isArray(result.teams) ? result.teams : []);
       } catch (requestError) {
         if (active) {
-          const message = requestError instanceof Error ? requestError.message : 'Unknown error';
-          setError(`Unable to load teams: ${message}`);
+          const message = getErrorMessage(requestError);
+          setError(`Não foi possível carregar as equipes: ${message}`);
         }
       } finally {
         if (active) setLoading(false);
@@ -48,7 +48,7 @@ export default function Teams() {
     const teamName = name.trim();
     const teamMascot = mascot.trim();
     if (!teamName || !teamMascot) {
-      setError('Team name and mascot are required.');
+      setError('O nome da equipe e o mascote são obrigatórios.');
       return;
     }
 
@@ -62,28 +62,41 @@ export default function Teams() {
       setTeams((current) => [result.team, ...current]);
       setName('');
       setMascot('');
-      setSuccess(`${teamName} was created successfully.`);
+      setSuccess(`Equipe ${teamName} criada com sucesso.`);
     } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : 'Unknown error';
-      setError(`Unable to create team: ${message}`);
+      const message = getErrorMessage(requestError);
+      setError(`Não foi possível criar a equipe: ${message}`);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div>
-      <h2 className="h4 mb-3">Teams</h2>
+    <div className="feature-page teams-page">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Nossa comunidade</p>
+          <h1 className="page-title">Equipes</h1>
+          <p className="page-description">Grupos unidos por objetivos e hábitos mais saudáveis.</p>
+        </div>
+        <div className="page-count"><strong>{teams.length}</strong><span>Equipes</span></div>
+      </div>
 
-      {error && <p className="alert alert-danger" role="alert">{error}</p>}
-      {success && <p className="alert alert-success" role="status">{success}</p>}
-      {loading && <p role="status">Loading teams...</p>}
+      {error && <p className="notice notice-error" role="alert">{error}</p>}
+      {success && <p className="notice notice-success" role="status">{success}</p>}
+      {loading && <p className="notice notice-loading" role="status">Carregando equipes...</p>}
 
-      <section className="mb-4" aria-labelledby="team-form-heading">
-        <h3 id="team-form-heading" className="h5">Create a team</h3>
+      <section className="surface-panel team-form-panel" aria-labelledby="team-form-heading">
+        <div className="section-heading">
+          <span className="section-index" aria-hidden="true">01</span>
+          <div>
+            <h2 id="team-form-heading" className="section-title">Criar equipe</h2>
+            <p className="section-description">Escolha um nome e um mascote para o grupo.</p>
+          </div>
+        </div>
         <form className="row g-3" onSubmit={handleSubmit}>
           <div className="col-md-5">
-            <label className="form-label" htmlFor="team-name">Team name</label>
+            <label className="form-label" htmlFor="team-name">Nome da equipe</label>
             <input
               className="form-control"
               id="team-name"
@@ -96,7 +109,7 @@ export default function Teams() {
             />
           </div>
           <div className="col-md-5">
-            <label className="form-label" htmlFor="team-mascot">Mascot</label>
+            <label className="form-label" htmlFor="team-mascot">Mascote</label>
             <input
               className="form-control"
               id="team-mascot"
@@ -109,29 +122,40 @@ export default function Teams() {
             />
           </div>
           <div className="col-md-2 d-flex align-items-end">
-            <button className="btn btn-primary w-100" type="submit" disabled={loading || saving}>
-              {saving ? 'Creating...' : 'Create team'}
+            <button className="action-button w-100" type="submit" disabled={loading || saving}>
+              {saving ? 'Criando...' : 'Criar equipe'}
             </button>
           </div>
         </form>
       </section>
 
-      <section aria-labelledby="team-list-heading">
-        <h3 id="team-list-heading" className="h5">Registered teams</h3>
-        {!loading && !error && teams.length === 0 && <p>No teams registered yet.</p>}
+      <section className="team-list-section" aria-labelledby="team-list-heading">
+        <div className="section-heading">
+          <span className="section-index section-index-green" aria-hidden="true">02</span>
+          <div>
+            <h2 id="team-list-heading" className="section-title">Equipes cadastradas</h2>
+            <p className="section-description">Conheça os grupos que estão evoluindo juntos.</p>
+          </div>
+        </div>
+        {!loading && !error && teams.length === 0 && <p className="empty-state">Nenhuma equipe cadastrada até o momento.</p>}
         {!loading && teams.length > 0 && (
-          <ul className="list-group">
+          <ul className="team-grid">
             {teams.map((team, index) => {
               const members = Array.isArray(team.members) ? team.members : [];
               return (
-                <li className="list-group-item" key={team._id ?? `${team.name}-${index}`}>
-                  <h4 className="h6 mb-1">{team.name}</h4>
-                  <p className="mb-2">Mascot: {team.mascot}</p>
-                  <div>
-                    <span className="fw-semibold">Members</span>
+                <li className="team-card" key={team._id ?? `${team.name}-${index}`}>
+                  <div className="team-card-heading">
+                    <span className="team-mark" aria-hidden="true">{team.name.slice(0, 1).toUpperCase()}</span>
+                    <div>
+                      <h3 className="team-name">{team.name}</h3>
+                      <p className="team-mascot">Mascote <strong>{team.mascot}</strong></p>
+                    </div>
+                  </div>
+                  <div className="team-members">
+                    <div className="member-heading"><span>Integrantes</span><span className="member-count">{members.length}</span></div>
                     {members.length === 0
-                      ? <p className="mb-0">No members assigned.</p>
-                      : <ul className="mb-0">{members.map((member) => <li key={member}>{member}</li>)}</ul>}
+                      ? <p className="member-empty">Nenhum integrante vinculado.</p>
+                      : <ul className="member-list">{members.map((member) => <li className="member-chip" key={member}>{member}</li>)}</ul>}
                   </div>
                 </li>
               );

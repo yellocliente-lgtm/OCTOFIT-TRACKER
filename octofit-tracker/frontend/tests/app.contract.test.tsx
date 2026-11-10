@@ -9,10 +9,10 @@ function renderRoute(route: string) {
 }
 
 const capabilities = [
-  { route: '/activities', empty: { activities: [] }, emptyText: /no activities/i },
-  { route: '/teams', empty: { teams: [] }, emptyText: /no teams/i },
-  { route: '/leaderboard', empty: { leaderboard: [] }, emptyText: /no (leaderboard|rankings|scores)/i },
-  { route: '/workouts', empty: { suggestions: [] }, emptyText: /no (workout|suggestions)/i },
+  { route: '/activities', empty: { activities: [] }, emptyText: /nenhuma atividade/i },
+  { route: '/teams', empty: { teams: [] }, emptyText: /nenhuma equipe/i },
+  { route: '/leaderboard', empty: { leaderboard: [] }, emptyText: /não há equipes/i },
+  { route: '/workouts', empty: { suggestions: [] }, emptyText: /nenhuma sugestão de treino/i },
 ];
 
 describe('OctoFit presentation contract', () => {
@@ -35,8 +35,8 @@ describe('OctoFit presentation contract', () => {
 
   it('renders activity data from the API', async () => {
     renderRoute('/activities');
-    expect(screen.getByRole('heading', { name: /activities/i })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/run/i)).toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: /^Atividades$/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/corrida/i)).toBeInTheDocument());
   });
 
   it('renders teams, leaderboard, and workout suggestions with accessible content', async () => {
@@ -47,7 +47,7 @@ describe('OctoFit presentation contract', () => {
     await waitFor(() => expect(screen.getByText(/90/)).toBeInTheDocument());
     leaderboard.unmount();
     renderRoute('/workouts');
-    await waitFor(() => expect(screen.getByText(/Intervals/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/treino intervalado/i)).toBeInTheDocument());
   });
 
   it('requests workout suggestions for a specific user', async () => {
@@ -60,7 +60,7 @@ describe('OctoFit presentation contract', () => {
       it('announces a loading state while the API request is pending', () => {
         vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
         renderRoute(capability.route);
-        expect(screen.getByRole('status')).toHaveTextContent(/loading/i);
+        expect(screen.getByRole('status')).toHaveTextContent(/carregando/i);
       });
 
       it('shows a meaningful empty state', async () => {
@@ -72,7 +72,7 @@ describe('OctoFit presentation contract', () => {
       it('announces API failures as an accessible alert', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ message: 'Unavailable' }), { status: 503 })));
         renderRoute(capability.route);
-        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/unable|unavailable|error/i));
+        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/não foi possível|indisponível|erro/i));
       });
     });
   }

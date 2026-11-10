@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { getJson, postJson } from '../api/client.js';
+import { getErrorMessage, getJson, postJson } from '../api/client.js';
+import { activityLabel, numberLabel } from '../ptBr.js';
 
 type Activity = {
   _id?: string;
@@ -46,8 +47,8 @@ export default function Activities() {
         }
       } catch (requestError) {
         if (active) {
-          const message = requestError instanceof Error ? requestError.message : 'Unknown error';
-          setError(`Unable to load activities: ${message}`);
+          const message = getErrorMessage(requestError);
+          setError(`Não foi possível carregar as atividades: ${message}`);
         }
       } finally {
         if (active) setLoading(false);
@@ -59,6 +60,7 @@ export default function Activities() {
   }, []);
 
   const selectedTeam = teams.find((team) => team._id === teamId);
+  const totalPoints = activities.reduce((total, activity) => total + activity.points, 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,7 +69,7 @@ export default function Activities() {
 
     const parsedMinutes = Number(minutes);
     if (!selectedTeam || !selectedTeam.members.includes(userId) || !type.trim() || !Number.isFinite(parsedMinutes) || parsedMinutes <= 0) {
-      setError('Choose a team member, enter an activity type, and provide positive minutes.');
+      setError('Selecione um integrante da equipe, informe o tipo de atividade e uma duração positiva em minutos.');
       return;
     }
 
@@ -83,28 +85,44 @@ export default function Activities() {
       setType('');
       setMinutes('');
       setUserId('');
-      setSuccess('Activity recorded successfully.');
+      setSuccess('Atividade registrada com sucesso.');
     } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : 'Unknown error';
-      setError(`Unable to record activity: ${message}`);
+      const message = getErrorMessage(requestError);
+      setError(`Não foi possível registrar a atividade: ${message}`);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div>
-      <h2 className="h4 mb-3">Activities</h2>
+    <div className="feature-page activities-page">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Registro de movimento</p>
+          <h1 className="page-title">Atividades</h1>
+          <p className="page-description">Cada treino contribui para a pontuação da equipe.</p>
+        </div>
+        <div className="activity-summary" aria-label="Resumo das atividades">
+          <div><strong>{numberLabel(activities.length)}</strong><span>Atividades</span></div>
+          <div><strong>{numberLabel(totalPoints)}</strong><span>Pontos no total</span></div>
+        </div>
+      </div>
 
-      {error && <p className="alert alert-danger" role="alert">{error}</p>}
-      {success && <p className="alert alert-success" role="status">{success}</p>}
-      {loading && <p role="status">Loading activities...</p>}
+      {error && <p className="notice notice-error" role="alert">{error}</p>}
+      {success && <p className="notice notice-success" role="status">{success}</p>}
+      {loading && <p className="notice notice-loading" role="status">Carregando atividades...</p>}
 
-      <section className="mb-4" aria-labelledby="activity-form-heading">
-        <h3 id="activity-form-heading" className="h5">Record an activity</h3>
+      <section className="surface-panel activity-form-panel" aria-labelledby="activity-form-heading">
+        <div className="section-heading">
+          <span className="section-index" aria-hidden="true">01</span>
+          <div>
+            <h2 id="activity-form-heading" className="section-title">Registrar atividade</h2>
+            <p className="section-description">Adicione um treino concluído à pontuação da equipe.</p>
+          </div>
+        </div>
         <form className="row g-3" onSubmit={handleSubmit}>
           <div className="col-md-6">
-            <label className="form-label" htmlFor="activity-team">Team</label>
+            <label className="form-label" htmlFor="activity-team">Equipe</label>
             <select
               className="form-select"
               id="activity-team"
@@ -113,12 +131,12 @@ export default function Activities() {
               required
               disabled={loading || saving}
             >
-              <option value="">Choose a team</option>
+              <option value="">Selecione uma equipe</option>
               {teams.map((team) => <option key={team._id ?? team.name} value={team._id ?? ''}>{team.name}</option>)}
             </select>
           </div>
           <div className="col-md-6">
-            <label className="form-label" htmlFor="activity-user">Team member</label>
+            <label className="form-label" htmlFor="activity-user">Integrante da equipe</label>
             <select
               className="form-select"
               id="activity-user"
@@ -127,13 +145,13 @@ export default function Activities() {
               required
               disabled={loading || saving || !selectedTeam?.members.length}
             >
-              <option value="">Choose a member</option>
+              <option value="">Selecione um integrante</option>
               {selectedTeam?.members.map((memberId) => <option key={memberId} value={memberId}>{memberId}</option>)}
             </select>
-            {!loading && selectedTeam && selectedTeam.members.length === 0 && <small className="form-text">No members available for this team.</small>}
+            {!loading && selectedTeam && selectedTeam.members.length === 0 && <small className="form-text">Esta equipe ainda não tem integrantes.</small>}
           </div>
           <div className="col-md-6">
-            <label className="form-label" htmlFor="activity-type">Activity type</label>
+            <label className="form-label" htmlFor="activity-type">Tipo de atividade</label>
             <input
               className="form-control"
               id="activity-type"
@@ -146,7 +164,7 @@ export default function Activities() {
             />
           </div>
           <div className="col-md-6">
-            <label className="form-label" htmlFor="activity-minutes">Minutes</label>
+            <label className="form-label" htmlFor="activity-minutes">Duração em minutos</label>
             <input
               className="form-control"
               id="activity-minutes"
@@ -160,31 +178,37 @@ export default function Activities() {
             />
           </div>
           <div className="col-12">
-            <button className="btn btn-primary" type="submit" disabled={loading || saving || !teams.length}>
-              {saving ? 'Recording...' : 'Record activity'}
+            <button className="action-button" type="submit" disabled={loading || saving || !teams.length}>
+              {saving ? 'Registrando...' : 'Registrar atividade'}
             </button>
           </div>
         </form>
       </section>
 
-      <section aria-labelledby="activity-list-heading">
-        <h3 id="activity-list-heading" className="h5">Activity log</h3>
-        {!loading && !error && activities.length === 0 && <p>No activities recorded yet.</p>}
+      <section className="surface-panel activity-list-panel" aria-labelledby="activity-list-heading">
+        <div className="section-heading">
+          <span className="section-index section-index-green" aria-hidden="true">02</span>
+          <div>
+            <h2 id="activity-list-heading" className="section-title">Histórico de atividades</h2>
+            <p className="section-description">Treinos recentes e pontos conquistados.</p>
+          </div>
+        </div>
+        {!loading && !error && activities.length === 0 && <p className="empty-state">Nenhuma atividade registrada até o momento.</p>}
         {!loading && activities.length > 0 && (
           <div className="table-responsive">
-            <table className="table table-striped align-middle">
+            <table className="table data-table align-middle">
               <thead>
-                <tr><th scope="col">Activity</th><th scope="col">Member</th><th scope="col">Team</th><th scope="col">Minutes</th><th scope="col">Points</th><th scope="col">Recorded</th></tr>
+                <tr><th scope="col">Atividade</th><th scope="col">Integrante</th><th scope="col">Equipe</th><th scope="col">Minutos</th><th scope="col">Pontos</th><th scope="col">Registrada em</th></tr>
               </thead>
               <tbody>
                 {activities.map((activity, index) => (
                   <tr key={activity._id ?? `${activity.type}-${activity.occurredAt ?? index}`}>
-                    <td>{activity.type}</td>
+                    <td>{activityLabel(activity.type)}</td>
                     <td>{activity.user ?? '-'}</td>
                     <td>{activity.team ?? '-'}</td>
-                    <td>{activity.minutes}</td>
-                    <td>{activity.points}</td>
-                    <td>{activity.occurredAt ? new Date(activity.occurredAt).toLocaleString() : '-'}</td>
+                    <td>{numberLabel(activity.minutes)}</td>
+                    <td>{numberLabel(activity.points)}</td>
+                    <td>{activity.occurredAt ? new Date(activity.occurredAt).toLocaleString('pt-BR') : '-'}</td>
                   </tr>
                 ))}
               </tbody>

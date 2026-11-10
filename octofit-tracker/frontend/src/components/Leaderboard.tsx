@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getJson } from '../api/client.js';
+import { getErrorMessage, getJson } from '../api/client.js';
 
 type LeaderboardEntry = {
   rank: number;
@@ -23,8 +23,8 @@ export default function Leaderboard() {
         if (active) setEntries(Array.isArray(result.leaderboard) ? result.leaderboard : []);
       } catch (requestError) {
         if (active) {
-          const message = requestError instanceof Error ? requestError.message : 'Unknown error';
-          setError(`Unable to load leaderboard: ${message}`);
+          const message = getErrorMessage(requestError);
+          setError(`Não foi possível carregar a classificação: ${message}`);
         }
       } finally {
         if (active) setLoading(false);
@@ -36,33 +36,63 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <section aria-labelledby="leaderboard-heading">
-      <h2 id="leaderboard-heading" className="h4 mb-3">Leaderboard</h2>
-      {loading && <p role="status">Loading leaderboard...</p>}
-      {error && <p className="alert alert-danger" role="alert">{error}</p>}
-      {!loading && !error && entries.length === 0 && <p>No rankings available yet.</p>}
-      {!loading && !error && entries.length > 0 && (
-        <div className="table-responsive">
-          <table className="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th scope="col">Position</th>
-                <th scope="col">Team</th>
-                <th scope="col">Total points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => (
-                <tr key={`${entry.rank}-${entry.teamName}`}>
-                  <td>{entry.rank}</td>
-                  <td>{entry.teamName}</td>
-                  <td>{entry.totalPoints}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="feature-page leaderboard-page">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Pontuação da temporada</p>
+          <h1 id="leaderboard-heading" className="page-title">Classificação</h1>
+          <p className="page-description">Cada atividade soma pontos para a equipe.</p>
         </div>
+        <span className="ranking-note">Pontuação atualizada</span>
+      </div>
+
+      {loading && <p className="notice notice-loading" role="status">Carregando classificação...</p>}
+      {error && <p className="notice notice-error" role="alert">{error}</p>}
+      {!loading && !error && entries.length === 0 && <p className="empty-state">Ainda não há equipes na classificação.</p>}
+      {!loading && !error && entries.length > 0 && (
+        <>
+          <section aria-labelledby="top-teams-heading">
+            <div className="section-heading">
+              <span className="section-index section-index-green" aria-hidden="true">01</span>
+              <div>
+                <h2 id="top-teams-heading" className="section-title">Melhores equipes</h2>
+                <p className="section-description">As três equipes com mais pontos.</p>
+              </div>
+            </div>
+            <ol className="podium-grid">
+              {entries.slice(0, 3).map((entry) => (
+                <li className={`podium-card podium-rank-${entry.rank}`} key={`${entry.rank}-${entry.teamName}`}>
+                  <span className="podium-position">{String(entry.rank).padStart(2, '0')} <span>LUGAR</span></span>
+                  <h3>{entry.teamName}</h3>
+                  <p><strong>{new Intl.NumberFormat('pt-BR').format(entry.totalPoints)}</strong><span>pontos</span></p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {entries.length > 3 && (
+            <section className="surface-panel remaining-rankings" aria-labelledby="remaining-rankings-heading">
+              <div className="section-heading">
+                <span className="section-index" aria-hidden="true">04+</span>
+                <div>
+                  <h2 id="remaining-rankings-heading" className="section-title">Demais colocações</h2>
+                  <p className="section-description">Todas as outras equipes nesta classificação.</p>
+                </div>
+              </div>
+              <div className="table-responsive">
+                <table className="table data-table align-middle">
+                  <thead><tr><th scope="col">Posição</th><th scope="col">Equipe</th><th scope="col">Pontos no total</th></tr></thead>
+                  <tbody>
+                    {entries.slice(3).map((entry) => (
+                      <tr key={`${entry.rank}-${entry.teamName}`}><td>{entry.rank}</td><td>{entry.teamName}</td><td>{new Intl.NumberFormat('pt-BR').format(entry.totalPoints)}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </>
       )}
-    </section>
+    </div>
   );
 }
