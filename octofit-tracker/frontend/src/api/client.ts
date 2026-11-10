@@ -51,12 +51,20 @@ export async function getJson<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
+async function sendJson<T>(method: 'POST' | 'PUT', path: string, body: unknown): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: 'POST',
+    method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!response.ok) throw await requestError(response);
   return response.json() as Promise<T>;
+}
+
+export function postJson<T>(path: string, body: unknown): Promise<T> {
+  return sendJson<T>('POST', path, body);
+}
+
+export function putJson<T>(path: string, body: unknown): Promise<T> {
+  return sendJson<T>('PUT', path, body);
 }

@@ -9,6 +9,96 @@ export async function listActivities() {
   return Activity.find().lean();
 }
 
+function validEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+const exerciseMet: Record<string, number> = {
+  walk: 3.5,
+  walking: 3.5,
+  caminhada: 3.5,
+  run: 8,
+  running: 8,
+  corrida: 8,
+  bike: 7.5,
+  bicycle: 7.5,
+  cycling: 7.5,
+  ciclismo: 7.5,
+  strength: 5,
+  'strength training': 5,
+  musculacao: 5,
+  'musculação': 5,
+  other: 4,
+};
+
+function estimateCalories(type: string, minutes: number, weightKg?: number | null) {
+  if (!weightKg) return undefined;
+  const met = exerciseMet[type.trim().toLowerCase()] ?? 4;
+  return Math.round(met * weightKg * (minutes / 60));
+}
+
+export async function getProfile(userEmail: string) {
+  if (typeof userEmail !== 'string' || !validEmail(userEmail)) {
+    throw serviceError(400, 'A valid user email is required');
+  }
+
+  const user = await User.findOne({ email: userEmail.trim().toLowerCase() })
+    .select('_id name email team fitnessGoal age weightKg heightCm weeklyGoalMinutes')
+    .lean();
+  if (!user) throw serviceError(404, 'User not found');
+  return user;
+}
+
+export async function updateProfile(userEmail: string, input: unknown) {
+  if (typeof userEmail !== 'string' || !validEmail(userEmail)) {
+    throw serviceError(400, 'A valid user email is required');
+  }
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw serviceError(400, 'Profile details are required');
+  }
+
+  const { name, age, weightKg, heightCm, fitnessGoal, weeklyGoalMinutes } = input as Record<string, unknown>;
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw serviceError(400, 'A non-empty name is required');
+  }
+  if (typeof age !== 'number' || !Number.isInteger(age) || age < 1 || age > 120) {
+    throw serviceError(400, 'Age must be a whole number between 1 and 120');
+  }
+  if (typeof weightKg !== 'number' || !Number.isFinite(weightKg) || weightKg < 20 || weightKg > 400) {
+    throw serviceError(400, 'Weight must be between 20 and 400 kilograms');
+  }
+  if (typeof heightCm !== 'number' || !Number.isFinite(heightCm) || heightCm < 100 || heightCm > 250) {
+    throw serviceError(400, 'Height must be between 100 and 250 centimeters');
+  }
+  if (typeof fitnessGoal !== 'string' || fitnessGoal.trim().length === 0) {
+    throw serviceError(400, 'A fitness goal is required');
+  }
+  if (typeof weeklyGoalMinutes !== 'number' || !Number.isInteger(weeklyGoalMinutes) || weeklyGoalMinutes < 1 || weeklyGoalMinutes > 1680) {
+    throw serviceError(400, 'Weekly goal must be between 1 and 1680 minutes');
+  }
+
+  const user = await User.findOneAndUpdate(
+    { email: userEmail.trim().toLowerCase() },
+    { $set: { name: name.trim(), age, weightKg, heightCm, fitnessGoal: fitnessGoal.trim(), weeklyGoalMinutes } },
+    { new: true, runValidators: true },
+  ).select('_id name email team fitnessGoal age weightKg heightCm weeklyGoalMinutes').lean();
+  if (!user) throw serviceError(404, 'User not found');
+  return user;
+}
+
+export async function listUserActivities(userId: unknown) {
+  if (typeof userId !== 'string' || !mongoose.isObjectIdOrHexString(userId)) {
+    throw serviceError(400, 'A valid userId is required');
+  }
+  const user = await User.findById(userId).select('weightKg').lean();
+  if (!user) throw serviceError(404, 'User not found');
+  const activities = await Activity.find({ user: userId }).sort({ occurredAt: -1 }).lean();
+  return activities.map((activity) => ({
+    ...activity,
+    calories: activity.calories ?? estimateCalories(activity.type, activity.minutes, user.weightKg),
+  }));
+}
+
 export async function createActivity(input: unknown) {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) {
     throw serviceError(400, 'Activity details are required');
@@ -18,7 +108,7 @@ export async function createActivity(input: unknown) {
   if (typeof userId !== 'string' || !mongoose.isObjectIdOrHexString(userId)) {
     throw serviceError(400, 'A valid userId is required');
   }
-  if (typeof teamId !== 'string' || !mongoose.isObjectIdOrHexString(teamId)) {
+  if (teamId !== undefined && (typeof teamId !== 'string' || !mongoose.isObjectIdOrHexString(teamId))) {
     throw serviceError(400, 'A valid teamId is required');
   }
   if (typeof type !== 'string' || type.trim().length === 0) {
@@ -28,20 +118,22 @@ export async function createActivity(input: unknown) {
     throw serviceError(400, 'Minutes must be a positive finite number');
   }
 
-  const [userExists, teamExists] = await Promise.all([
-    User.exists({ _id: userId }),
-    Team.exists({ _id: teamId }),
-  ]);
-  if (!userExists || !teamExists) {
+  const user = await User.findById(userId).select('team weightKg').lean();
+  if (!user) throw serviceError(404, 'User not found');
+  const assignedTeamId = teamId ?? user.team?.toString();
+  if (!assignedTeamId || !await Team.exists({ _id: assignedTeamId })) {
     throw serviceError(404, 'User or team not found');
   }
 
+  const calories = estimateCalories(type, minutes, user.weightKg);
+
   return Activity.create({
     user: userId,
-    team: teamId,
+    team: assignedTeamId,
     type: type.trim(),
     minutes,
     points: minutes,
+    ...(calories !== undefined ? { calories } : {}),
     occurredAt: new Date(),
   });
 }
@@ -121,6 +213,10 @@ function normalizeWorkoutFocus(value: unknown) {
     stretch: 'mobility',
     stretching: 'mobility',
     yoga: 'mobility',
+    'weight-loss': 'endurance',
+    'weight loss': 'endurance',
+    'general-fitness': 'endurance',
+    'general fitness': 'endurance',
   };
 
   return activityFocus[normalized] ?? normalized;

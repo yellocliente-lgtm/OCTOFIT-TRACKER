@@ -6,6 +6,7 @@ const activitySchema = new Schema({
   type: { type: String, required: true, trim: true },
   minutes: { type: Number, required: true, min: Number.MIN_VALUE },
   points: { type: Number, required: true, min: Number.MIN_VALUE },
+  calories: { type: Number, min: 0 },
   occurredAt: { type: Date, required: true },
 });
 

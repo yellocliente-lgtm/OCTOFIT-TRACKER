@@ -3,6 +3,7 @@ const activityLabels: Record<string, string> = {
   running: 'Corrida',
   cycle: 'Ciclismo',
   cycling: 'Ciclismo',
+  bike: 'Bicicleta',
   walk: 'Caminhada',
   walking: 'Caminhada',
   strength: 'Força',
@@ -20,6 +21,8 @@ const focusLabels: Record<string, string> = {
   strength: 'força',
   mobility: 'mobilidade',
   cardio: 'condicionamento cardiovascular',
+  'weight-loss': 'emagrecimento',
+  'general-fitness': 'condicionamento geral',
 };
 
 const difficultyLabels: Record<string, string> = {

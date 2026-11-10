@@ -3,12 +3,14 @@ import Activities from './components/Activities.js';
 import Teams from './components/Teams.js';
 import Leaderboard from './components/Leaderboard.js';
 import Workouts from './components/Workouts.js';
+import Profile from './components/Profile.js';
 
 const navigation = [
   { to: '/activities', number: '01', label: 'Atividades' },
   { to: '/teams', number: '02', label: 'Equipes' },
   { to: '/leaderboard', number: '03', label: 'Classificação' },
   { to: '/workouts', number: '04', label: 'Sugestões de treino' },
+  { to: '/profile', number: '05', label: 'Meu perfil' },
 ];
 
 export default function App() {
@@ -45,6 +47,7 @@ export default function App() {
           <Route path="/teams" element={<Teams />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/workouts" element={<Workouts />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
 

@@ -12,7 +12,7 @@ export const protectedContracts = {
   'octofit-tracker/backend/tests/data.contract.test.ts': '4ba8958d2098d2223946072611494c97f3c2ec41c4b11a911c6baed8c3c87929',
   'octofit-tracker/backend/tests/api.contract.test.ts': '910fa9d539e1fbc6478e4c65e13d790b43a92d228752a7a6a2108e34902716fd',
   'octofit-tracker/backend/tsconfig.json': '52ae7740b2c43a72f7306679d38fe15bc376384ea08eef7d913bfc633e6298b5',
-  'octofit-tracker/frontend/tests/app.contract.test.tsx': '7fd967eb2d6f7bee5e9afdf8dc0bcea50ade2bfe6505e894747ecc7a10d3f834',
+  'octofit-tracker/frontend/tests/app.contract.test.tsx': '79e99af590243a99aba6ab31cba56776607bcdb415a666dd1b729f8781ffea86',
   'octofit-tracker/frontend/vite.config.ts': 'a1f305cc8a408189f264ef113a470303581bf15355e647631a3c0c8cb0f17b41',
   'octofit-tracker/frontend/tsconfig.json': '5cf5302ccdedebce59ab6734e9d8ffdc1091d828b6b527215ac33c0e17753596',
 };

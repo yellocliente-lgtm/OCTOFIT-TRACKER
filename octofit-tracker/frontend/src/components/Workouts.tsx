@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getErrorMessage, getJson } from '../api/client.js';
+import { activeUserEmail } from '../individual.js';
 import { difficultyLabel, focusLabel, workoutReason, workoutTitle } from '../ptBr.js';
 
 type WorkoutSuggestion = {
@@ -10,8 +11,6 @@ type WorkoutSuggestion = {
   difficulty?: string;
   reason?: string;
 };
-
-const demoUserEmail = 'mona@example.com';
 
 export default function Workouts() {
   const [suggestions, setSuggestions] = useState<WorkoutSuggestion[]>([]);
@@ -26,7 +25,7 @@ export default function Workouts() {
       setError('');
       try {
         const result = await getJson<{ suggestions: WorkoutSuggestion[] }>(
-          `/api/workouts/suggestions/${encodeURIComponent(demoUserEmail)}`,
+          `/api/workouts/suggestions/${encodeURIComponent(activeUserEmail)}`,
         );
         if (active) setSuggestions(Array.isArray(result.suggestions) ? result.suggestions : []);
       } catch (requestError) {
